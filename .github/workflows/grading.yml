@@ -1,0 +1,96 @@
+name: Auto-Grade Submission
+
+# Runs the auto-grading test suite on every push and PR, and posts a
+# rubric-weighted score to the run's Job Summary. It never fails the
+# workflow outright (partial credit is expected mid-course) — check the
+# Summary tab after each push to see where you stand.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  grade:
+    name: Run tests & compute grade
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install CPU-only PyTorch + project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Force the small CPU-only PyTorch build for fast, free CI runners.
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Run test suite (all phases)
+        id: pytest
+        continue-on-error: true
+        run: |
+          python -m pytest -v \
+            --json-report --json-report-file=report.json \
+            --junitxml=junit.xml
+
+      - name: Compute weighted grade
+        run: python scripts/grade.py
+
+      - name: Publish grade to Job Summary
+        if: always()
+        run: |
+          {
+            echo "# 🎨 Advanced Generative Art Studio — Grade Report"
+            echo ""
+            python - <<'PY'
+          import json
+          result = json.load(open("grade_report.json"))
+          print(f"**Auto-gradable score: {result['auto_gradable_score']} / {result['auto_gradable_weight']:.0f}**")
+          print()
+          print("| Category | Tests Passed | Weight | Earned |")
+          print("|---|---|---|---|")
+          for row in result["rows"]:
+              print(f"| {row['category']} | {row['passed']}/{row['total']} | {row['weight']}% | {row['earned']} |")
+          print()
+          print(f"> {result['manual_review_note']}")
+          print()
+          print("Run `python scripts/grade.py` locally any time to see this before you push.")
+          PY
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload grading artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grading-report
+          path: |
+            report.json
+            grade_report.json
+            junit.xml
+          retention-days: 30
+
+      - name: Fail job if the environment itself is broken
+        if: steps.pytest.outcome == 'failure'
+        run: |
+          python - <<'PY'
+          import json
+          report = json.load(open("report.json"))
+          setup_tests = [t for t in report.get("tests", []) if "test_00_setup" in t["nodeid"]]
+          broken = [t for t in setup_tests if t.get("outcome") != "passed"]
+          if broken:
+              print("Environment sanity checks failed — fix imports/dependencies before rubric tests can run:")
+              for t in broken:
+                  print(f"  - {t['nodeid']}")
+              raise SystemExit(1)
+          print("Environment OK — remaining failures are ungraded TODOs, not blocking.")
+          PY

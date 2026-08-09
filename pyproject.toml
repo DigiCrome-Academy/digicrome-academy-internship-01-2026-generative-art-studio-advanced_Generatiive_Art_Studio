@@ -1,0 +1,23 @@
+[project]
+name = "generative-art-studio"
+version = "0.1.0"
+description = "Advanced Generative Art Studio — VAE/GAN creative platform (student starter project)"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "vae: Phase 1 - Autoencoder & VAE implementation (rubric weight 20%)",
+    "gan: Phase 2 - GAN implementation, variants & stability (rubric weight 30%)",
+    "advanced: Phase 3 - Style transfer, conditional generation, mode-collapse handling (rubric weight 20%)",
+    "evaluation: Evaluation & analysis, FID/IS metrics (rubric weight 15%)",
+    "platform: Phase 4 - Generative Art Platform (rubric weight 10%)",
+]
+addopts = "-ra"
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

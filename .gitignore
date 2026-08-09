@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Datasets (students download these locally, never commit)
+data/*
+!data/README.md
+
+# Model checkpoints & generated outputs (large binaries, never commit)
+checkpoints/*
+!checkpoints/.gitkeep
+outputs/*
+!outputs/.gitkeep
+!outputs/portfolio/
+outputs/portfolio/*
+!outputs/portfolio/README.md
+
+# Test / grading artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+grade_report.json
+report.json
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/secrets.toml
